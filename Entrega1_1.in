@@ -1,0 +1,144 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%                            PRÁCTICA 1 DE RAZONAMIENTO AUTOMÁTICO
+%                                           OTTER
+%
+%
+%                                ALUMNO: Gabriel Chaves Benítez
+%                               
+%
+%                                         EJERCICIO 1
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%                                    LENGUAJE DEL PROBLEMA
+%
+%  ficha(x,y,x1,x2,x3,x4,x5,x6,x7,x8) -> Es la ficha de número x oriente con el lado y hacia arria y 
+%                                             con colores x1,... ,x8. 
+%
+%  fila(l,w,u,d) -> Fila formada por las fichas que constituyen la lista w, los colores superiores
+% serán los de la lista u y los inferiores la lista d.
+%
+%   tablero(c,w,u,d) -> Tablero formado pos las filas que constiuyen la lista w, los colores
+% superiores serán los de la lista u y los inferiores la lista d.
+%
+% 
+%
+%                                    EXPLICACIÓN DEL MÉTODO
+%
+%   El procedimiento utilizado será: Crear filas de longitud "i". Cuando tengamos todas
+% las filas posibles cumpliendo las reglas de colocación empezaremos a unir filas entre si 
+% para formar tableros hasta obtener "j". Para evitar que se realicen cálculos de más los
+% contadores utilizados irán decreciendo. También hemos incluido una norma para unir tableros
+% entre si para mejorar levemente la eficiencia.
+%
+% 
+%                                      TIEMPOS DE ESPERA
+%  problema(2,2) =  0.03  segundos
+%  problema(2,3) = 0.03   segundos
+%  problema(3,3) = 0.07   segundos
+%  problema(2,4) = 0.03 segundos
+%
+%
+%
+%       ORDEN DE LAS FICHAS.
+%               __1__2__
+%              |        |
+%              8        3
+%              |        |
+%              7        4
+%              |        |
+%              |__6__5__|
+%
+
+
+
+
+
+set(hyper_res).
+set(para_from).
+set(para_into).
+set(sos_stack). %Esta función la he encontrado en el manual de Otter, me permite mejorar el orden de uso de las fórmulas
+make_evaluable(_-_, $DIFF(_,_)).
+make_evaluable(_<=_, $LE(_,_)).
+assign(max_proofs,5).
+
+formula_list(usable).
+% FICHAS BÁSICAS
+
+ ficha(1,cara,rojo,amarillo,morado,verde,rojo,morado,verde,amarillo).
+ ficha(1,cruz,amarillo,morado,verde,rojo,amarillo,rojo,morado,verde).
+ ficha(2,cara,amarillo,morado,verde,rojo,amarillo,verde,rojo,morado).
+ ficha(2,cruz,verde,morado,rojo,amarillo,verde,amarillo,morado,rojo).
+ ficha(3,cara,amarillo,verde,morado,rojo,amarillo,morado,rojo,verde).
+ ficha(3,cruz,morado,verde,rojo,amarillo,morado,amarillo,verde,rojo).
+ ficha(4,cara,amarillo,rojo,verde,morado,amarillo,verde,morado,rojo).
+ ficha(4,cruz,verde,rojo,morado,amarillo,verde,amarillo,rojo,morado).
+ ficha(5,cara,verde,rojo,amarillo,morado,verde,amarillo,morado,rojo).
+ ficha(5,cruz,amarillo,rojo,morado,verde,amarillo,verde,rojo,morado).
+ ficha(6,cara,morado,rojo,amarillo,verde,morado,amarillo,verde,rojo).
+ ficha(6,cruz,amarillo,rojo,verde,morado,amarillo,morado,rojo,verde).
+ ficha(7,cara,rojo,amarillo,verde,morado,rojo,verde,morado,amarillo).
+ ficha(7,cruz,rojo,amarillo,morado,verde,rojo,verde,amarillo,morado).
+ ficha(8,cara,morado,verde,amarillo,rojo,morado,amarillo,rojo,verde).
+ ficha(8,cruz,verde,amarillo,rojo,morado,verde,morado,amarillo,rojo).
+ ficha(9,cara,morado,amarillo,rojo,verde,morado,rojo,verde,amarillo).
+ ficha(9,cruz,rojo,amarillo,verde,morado,rojo,morado,amarillo,verde).
+
+end_of_list.
+
+
+formula_list(sos).
+ % CREACION DE FICHAS
+
+ all x or y1 y2 y3 y4 y5 y6 y7 y8 
+    (ficha(x,or,y1,y2,y3,y4,y5,y6,y7,y8) -> 
+    (ficha(x,or,y3,y4,y5,y6,y7,y8,y1,y2) & 
+     ficha(x,or,y5,y6,y7,y8,y1,y2,y3,y4) &
+     ficha(x,or,y7,y8,y1,y2,y3,y4,y5,y6)
+    )).
+
+% GESTIÓN DE FILAS
+% Si una ficha puede unirse a una fila, creamos la fila con la unión
+ all x or1 y1 y2 y3 y4 y5 y6 y7 y8 z or2 z1 z2 z3 z4 z5 z6 w l u d
+    (ficha(x,or1,y1,y2,y3,y4,y5,y6,y7,y8) & fila(l,[ficha(z,or2,z1,z2,z3,z4,z5,z6,y4,y3)|w],u,d) & 1<=l
+    -> fila(l-1,append([ficha(x,or1,y1,y2,y3,y4,y5,y6,y7,y8),ficha(z,or2,z1,z2,z3,z4,z5,z6,y4,y3)],w),[y1,y2|u],[y6,y5|d] )).
+% Toda ficha puede comenzar una fila
+ all x or1 x1 x2 x3 x4 x5 x6 x7 x8 l (ficha(x,or1,x1,x2,x3,x4,x5,x6,x7,x8) & fila(l,[],[],[]) ->
+   fila(l-1,[ficha(x,or1,x1,x2,x3,x4,x5,x6,x7,x8)],[x1,x2],[x6,x5])).
+ 
+ 
+% GESTIÓN DE TABLEROS
+% Coloco la nueva fila abajo
+ all l1 w1 w2 c1 u1 d1 u2 d2
+ (fila(0,w1,u1,d1) & tablero(c1,w2,u2,u1) & 1 <= c1 -> tablero(c1-1,append(w2,[w1]),u2,d1)).
+ % Coloco la nueva fila arriba
+ all l1 w1 w2 c1 u1 d1 u2 d2
+ (fila(0,w1,u1,d1) & tablero(c1,w2,d1,d2) & 1 <= c1 -> tablero(c1-1,[w1|w2],u1,d2)).
+ % Toda fila puede comenzar un tablero
+ all l1 w1 w2 c1 u1 d1 u2 d2
+ (fila(0,w1,u1,d1) & tablero(c1,[],[],[]) & 1 <= c1 -> tablero(c1-1,[w1],u1,d1)).
+ % Unir dos tableros
+ all  w1 w2 c1 c2 d1 d2 u1 u2 (tablero(c1,w1,u1,d1) & tablero(c2,w2,u2,d2) & 0 <= c1-c2  & (u1 = d2) -> 
+   tablero(c1-c2,[w2|w1],u2,d1)).
+
+ % Fórmula utilizada para resolver el problema
+ all i j (problema(i,j) -> fila(j,[],[],[]) & tablero(i,[],[],[])).
+% problema(2,2).
+  problema(2,3). 
+%  problema(3,3).
+%  problema(2,4).
+ 
+end_of_list.
+
+formula_list(passive).
+% Mostramos la respuesta como una lista de listas
+all u d w ((tablero(0,w,u,d) ) -> $ANS(w)).
+end_of_list.
+
+list(demodulators).
+ append([],w) = w.
+ append([x|w1],w2) = [x|append(w1,w2)].
+end_of_list.
